@@ -34,7 +34,7 @@ sub _build_dbh {
 
   my $dsn = sprintf q(DBI:SQLite:dbname=%s),
 	      q{t/data/} . $self->dbname     || q[];
-warn $dsn;
+
   my $dbh;
   eval {
     $dbh = DBI->connect($dsn, q[], q[],

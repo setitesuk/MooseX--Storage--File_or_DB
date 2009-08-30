@@ -26,7 +26,7 @@ has q{col_index}  => (isa => q{Int}, is => q{ro}, writer => q{_set_primary_key})
 
 sub primary_key {
   my ($self) = @_;
-  return $self->col_index();
+  return q{col_index};
 }
 
 no Moose;

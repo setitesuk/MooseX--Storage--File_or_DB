@@ -20,38 +20,19 @@ sub write_to_database {
     croak q{no dbh found};
   }
   my $dbh = $self->dbh();
-  my $href = $self->pack();
+  my $params = $self->_determine_db_query_params();
 
-  if (!$href->{__CLASS__}) {
-    croak q{No __CLASS__ found - is this actually an object?};
-  }
-
-  my (@fields, @values, @val_spaces);
-  my $table;
-  foreach my $field (keys %{$href}) {
-    my $value = $href->{$field};
-    if ($field eq q{__CLASS__}) {
-      $field = q{class};
-      $table = $value;
-      $table =~ s/::/_/gxms;
-      $table =~ s/-\d+\z//gxms;
-      $table =~ tr/[A-Z]/[a-z]/;
-    }
-    push @fields, $field;
-    push @values, $value;
-    push @val_spaces, q{?};
-  }
-
-  my $fields_string = join q{,}, @fields;
-  my $val_spaces_string = join q{,}, @val_spaces;
+  my $fields_string = join q{,}, @{$params->{fields}};
+  my $val_spaces_string = join q{,}, @{$params->{val_spaces}};
 
   eval {
-    my $insert_statement = qq{INSERT INTO $table($fields_string) VALUES ($val_spaces_string)};
-    $dbh->do($insert_statement, {}, @values);
+    my $insert_statement = qq{INSERT INTO $params->{table}($fields_string) VALUES ($val_spaces_string)};
+    $dbh->do($insert_statement, {}, @{$params->{values}});
     $dbh->commit();
   } or do {
     croak $EVAL_ERROR;
   };
+
   return 1;
 }
 
@@ -61,34 +42,20 @@ sub read_from_database {
     croak q{no dbh found};
   }
   my $dbh = $self->dbh();
-  my $href = $self->pack();
-  my (@fields, @values, @val_spaces);
-  my $table;
-  foreach my $field (keys %{$href}) {
-    my $value = $href->{$field};
-    if ($field eq q{__CLASS__}) {
-      $field = q{class};
-      $table = $value;
-      $table =~ s/::/_/gxms;
-      $table =~ s/-\d+\z//gxms;
-      $table =~ tr/[A-Z]/[a-z]/;
-    }
-    push @fields, $field;
-    push @values, $value;
-    push @val_spaces, q{?};
-  }
+  my $params = $self->_determine_db_query_params();
 
-  my $query = qq{SELECT * FROM $table WHERE };
+  my $query = qq{SELECT * FROM $params->{table} WHERE };
   my $count = 0;
-  foreach my $field (@fields) {
+  foreach my $field (@{$params->{fields}}) {
     if ($count != 0) {
       $query .= q{AND };
     }
     $count++;
     $query .= qq{$field = ? };
   }
+
   my $sth = $dbh->prepare($query);
-  $sth->execute(@values);
+  $sth->execute(@{$params->{values}});
   my @results;
   while (my $href = $sth->fetchrow_hashref()) {
     push @results, $href;
@@ -104,10 +71,11 @@ sub read_from_database {
 
   my $info = $results[0];
 
-  foreach my $key (%{$info}) {
+  foreach my $key (sort keys %{$info}) {
     next if $key eq q{class};
     if ($key eq $self->primary_key()) {
       $self->_set_primary_key($info->{$key});
+      next;
     }
     $self->$key($info->{$key});
   }
@@ -115,7 +83,33 @@ sub read_from_database {
   return 1;
 }
 
+sub _determine_db_query_params {
+  my ($self) = @_;
+  my $href = $self->pack();
+  my (@fields, @values, @val_spaces);
+  my $table;
 
+  foreach my $field (sort keys %{$href}) {
+    my $value = $href->{$field};
+    if ($field eq q{__CLASS__}) {
+      $field = q{class};
+      $table = $value;
+      $table =~ s/::/_/gxms;
+      $table =~ s/-\d+\z//gxms;
+      $table =~ tr/[A-Z]/[a-z]/;
+    }
+    push @fields, $field;
+    push @values, $value;
+    push @val_spaces, q{?};
+  }
+
+  return {
+          table => $table,
+          fields => \@fields,
+          values => \@values,
+          val_spaces => \@val_spaces,
+         };
+}
 
 no Moose;
 __PACKAGE__->meta->make_immutable;

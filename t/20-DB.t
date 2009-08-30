@@ -20,7 +20,7 @@ my $util = util->new({
 {
   my $dbtest = DB_test->new();
   isa_ok($dbtest, q{DB_test}, q{$dbtest});
-  throws_ok { $dbtest->write_to_database(); } qr{no[ ]dbh[ ]found}, q{no database handle provided - write};
+  throws_ok { $dbtest->write_to_database();  } qr{no[ ]dbh[ ]found}, q{no database handle provided - write};
   throws_ok { $dbtest->read_from_database(); } qr{no[ ]dbh[ ]found}, q{no database handle provided - read};
 }
 {
