@@ -131,7 +131,7 @@ MooseX::Storage::File_or_DB
   extends q{MooseX::Storage::File_or_DB};
 
   has q{dbh} => ( isa => q{Object}, is => q{ro}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
-  ... your other attributes here ...
+  ... your other attributes here - these should be rw, not ro ...
 
   no Moose;
   __PACKAGE__->meta->make_immutable;
