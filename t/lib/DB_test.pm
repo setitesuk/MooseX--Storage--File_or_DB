@@ -17,7 +17,6 @@ extends qw{MooseX::Storage::File_or_DB};
 
 Readonly::Scalar our $VERSION => do { my ($r) = q$LastChangedRevision: 5210 $ =~ /(\d+)/mxs; $r; };
 
-has q{dbh}        => (isa => q{Object}, is => q{ro}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
 has q{col_a}      => (isa => q{Str}, is => q{rw});
 has q{col_b}      => (isa => q{Int}, is => q{rw});
 has q{col_c}      => (isa => q{Str}, is => q{rw});

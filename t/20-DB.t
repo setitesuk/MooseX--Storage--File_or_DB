@@ -72,4 +72,14 @@ my $util = util->new({
   lives_ok { $newdbtest->read_from_database(); } q{read in when 2 rows returned};
   is($newdbtest->col_index(), 1, q{row 1 is given when 2 rows returned});
 }
+
+{
+  my $dbtest_restore;
+  lives_ok { $dbtest_restore = DB_test->restore_from_database({
+    dbh => $util->dbh(),
+    col_a => q{Goodbye},
+  }); } q{generated from restore_from_database function};
+  isa_ok($dbtest_restore, q{DB_test}, q{$dbtest_restore});
+  is($dbtest_restore->col_b(), 4, q{col_b value has been accurately restored});
+}
 1;

@@ -14,6 +14,8 @@ use MooseX::Storage;
 
 Readonly::Scalar our $VERSION => 0.1;
 
+has q{dbh} => ( isa => q{Object}, is => q{ro}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
+
 sub write_to_database {
   my ($self) = @_;
   if (!$self->has_dbh()) {
@@ -43,10 +45,62 @@ sub read_from_database {
   }
   my $dbh = $self->dbh();
   my $params = $self->_determine_db_query_params();
+  $params->{dbh} = $dbh;
 
-  my $query = qq{SELECT * FROM $params->{table} WHERE };
+  my $info = $self->_db_lookup($params);#results[0];
+
+  foreach my $key (sort keys %{$info}) {
+    next if $key eq q{class};
+    if ($key eq $self->primary_key()) {
+      $self->_set_primary_key($info->{$key});
+      next;
+    }
+    $self->$key($info->{$key});
+  }
+
+  return 1;
+}
+
+sub restore_from_database {
+  my ($class, $args) = @_;
+  my $dbh = $args->{dbh};
+  if (!$dbh) {
+    croak q{no dbh found};
+  }
+  delete $args->{dbh};
+  my $table = $class;
+  $table =~ s/::/_/gxms;
+
+  my (@fields, @values);
+
+  foreach my $field (keys %{$args}) {
+    push @fields, $field;
+    push @values, $args->{$field};
+  }
+
+  my $arg_refs = {
+    dbh    => $dbh,
+    table  => $table,
+    fields => \@fields,
+    values => \@values,
+  };
+
+  return $class->unpack($class->_db_lookup($arg_refs));
+}
+
+################
+# Private methods
+sub _db_lookup {
+  my ($self, $args) = @_;
+  my $dbh    = $args->{dbh};
+  my $fields = $args->{fields};
+  my $values = $args->{values};
+  my $table  = $args->{table};
+
+
+  my $query = qq{SELECT * FROM $table WHERE };
   my $count = 0;
-  foreach my $field (@{$params->{fields}}) {
+  foreach my $field (@{$fields}) {
     if ($count != 0) {
       $query .= q{AND };
     }
@@ -55,7 +109,7 @@ sub read_from_database {
   }
 
   my $sth = $dbh->prepare($query);
-  $sth->execute(@{$params->{values}});
+  $sth->execute(@{$values});
   my @results;
   while (my $href = $sth->fetchrow_hashref()) {
     push @results, $href;
@@ -69,18 +123,7 @@ sub read_from_database {
     carp q{More than one result from the database, only populating with the first returned result};
   }
 
-  my $info = $results[0];
-
-  foreach my $key (sort keys %{$info}) {
-    next if $key eq q{class};
-    if ($key eq $self->primary_key()) {
-      $self->_set_primary_key($info->{$key});
-      next;
-    }
-    $self->$key($info->{$key});
-  }
-
-  return 1;
+  return $results[0];
 }
 
 sub _determine_db_query_params {
@@ -130,19 +173,32 @@ MooseX::Storage::File_or_DB
   use Moose;
   extends q{MooseX::Storage::File_or_DB};
 
-  has q{dbh} => ( isa => q{Object}, is => q{ro}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
-  ... your other attributes here - these should be rw, not ro ...
+  has q{xxx_id} => (isa => q{Int}, is => q{ro}, writer => q{_set_primary_key}); # if your table has a unique primary key, set it as this
+  ... your attributes here - these should be rw, not ro ...
+
+  sub primary_key {  # if your table has a unique primary key, then add this method to be able to use the read_from_database method
+    my ($self) = @_;
+    return q{xxx_id};
+  }
 
   no Moose;
   __PACKAGE__->meta->make_immutable;
   1;
 
   my $myclass = MyClass->new({
+    dbh => $oDBH, # this is optional (i.e. for read/write to a filesystem), but required if you intend to do database read/write
     ...
   });
 
   $myclass->write_to_database();
-  $myclass->read_from_database();
+  $myclass->read_from_database(); # If you don't want to restore from the class method but would prefer to have the object instantiated first
+
+or you can restore directly from the database
+
+  my $myclass_from_db = MyClass->restore_from_database({
+    dbh => $oDBH,
+    ... # some fields which will should make a database lookup unique
+  });
 
 =head1 DESCRIPTION
 
@@ -167,6 +223,17 @@ and all capitals replaced with lower case letters
 
 =head1 SUBROUTINES/METHODS
 
+=head2 restore_from_database
+
+handles generating the object from the database entry
+
+  my $myclass_from_db = MyClass->restore_from_database({
+    dbh => $oDBH,
+    ... # some fields which will should make a database lookup unique
+  });
+
+This is the prefered method to obtain back from the database.
+
 =head2 write_to_database
 
 handles writing your object out to the database table, if you have a unique primary key, it will update the row instead
@@ -175,6 +242,7 @@ handles writing your object out to the database table, if you have a unique prim
 
 handles bringing your object back from the database table for this you need your unique primary key or
 unique composite index fields to already be given, for the inevitable table lookup
+This method is provided, but you should use Class->restore_from_database({args}) in preference. In later revisions, this may become deprecated.
 
 =head1 DIAGNOSTICS
 
@@ -205,7 +273,7 @@ they don't exist. Please let me know if you find any
 
 =head1 BUGS AND LIMITATIONS
 
-As with any software, there are possibly a few bugs (or maybe more). If you find any, please ley me know.
+As with any software, there are possibly a few bugs (or maybe more). If you find any, please let me know.
 Also, I am open to any improvements, so please submit any patches you create. You can fork the source code
 from http://github.com/setitesuk/MooseX--Storage--File_or_DB
 
