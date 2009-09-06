@@ -14,7 +14,7 @@ use MooseX::Storage;
 
 Readonly::Scalar our $VERSION => 0.1;
 
-has q{dbh} => ( isa => q{Object}, is => q{ro}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
+has q{dbh} => ( isa => q{Object}, is => q{rw}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
 
 sub write_to_database {
   my ($self) = @_;
@@ -26,6 +26,14 @@ sub write_to_database {
 
   my $fields_string = join q{,}, @{$params->{fields}};
   my $val_spaces_string = join q{,}, @{$params->{val_spaces}};
+
+  #######
+  # will update a row if there is a primary key column and populated
+  my $primary_key;
+  eval { $primary_key = $self->primary_key(); } or do {}; # silently fails if there is no primary key method
+  if ($primary_key && $self->$primary_key()) {
+    return $self->_update_row($params);
+  }
 
   eval {
     my $insert_statement = qq{INSERT INTO $params->{table}($fields_string) VALUES ($val_spaces_string)};
@@ -88,8 +96,38 @@ sub restore_from_database {
   return $class->unpack($class->_db_lookup($arg_refs));
 }
 
+
 ################
 # Private methods
+
+##############
+# only used in the case where a row might need updating - probably if you intend to use your subclass as a model backend to an application
+sub _update_row {
+  my ($self, $params) = @_;
+  my $dbh = $self->dbh();
+  my $values = $params->{values};
+
+  eval {
+    my $update_statement = qq{UPDATE $params->{table} SET };
+
+    my $update_string = join q{ = ?, }, @{$params->{fields}};
+    $update_statement .= $update_string . q{ = ? };
+
+    my $primary_key = $self->primary_key();
+
+    $update_statement .= qq{WHERE $primary_key = ?};
+
+    $dbh->do( $update_statement, {}, (@{$values}, $self->$primary_key()) );
+    $dbh->commit();
+  } or do {
+    croak $EVAL_ERROR;
+  };
+
+  return 1;
+}
+
+##############
+# does the select lookup
 sub _db_lookup {
   my ($self, $args) = @_;
   my $dbh    = $args->{dbh};
@@ -126,6 +164,8 @@ sub _db_lookup {
   return $results[0];
 }
 
+#############
+# uses the pack option to construct the database columns, and the values to be used
 sub _determine_db_query_params {
   my ($self) = @_;
   my $href = $self->pack();
@@ -176,7 +216,7 @@ MooseX::Storage::File_or_DB
   has q{xxx_id} => (isa => q{Int}, is => q{ro}, writer => q{_set_primary_key}); # if your table has a unique primary key, set it as this
   ... your attributes here - these should be rw, not ro ...
 
-  sub primary_key {  # if your table has a unique primary key, then add this method to be able to use the read_from_database method
+  sub primary_key {  # if your table has a unique primary key, then add this method to be able to update a row with the write_to_database method
     my ($self) = @_;
     return q{xxx_id};
   }
@@ -211,8 +251,7 @@ a choice can be made as to where the data may be (i.e. short term in FileSystem,
 This extends the MooseX::Storage Class by adding further methods which can serialise out to a database that is connected
 to using a dbh provided by you, which should be a handle from a DBI class.
 
-This class makes use of MooseX::Storage, and it is vitally important that you ensure your dbh attribute is declared with
-the metaclass => 'DoNotSerialize', or else Bad things will happen.
+This class makes use of MooseX::Storage.
 
 For now, you need to have your own database schema which will reflect the object. This may change.
 Each table must have a 'class' column, with VARCHAR(256) (256 or a value suitable for the length of the package name).
@@ -236,13 +275,18 @@ This is the prefered method to obtain back from the database.
 
 =head2 write_to_database
 
-handles writing your object out to the database table, if you have a unique primary key, it will update the row instead
+handles writing your object out to the database table, if you have a unique primary key, it will update the row instead, provided you
+have the primary_key method to enable this
 
 =head2 read_from_database
 
 handles bringing your object back from the database table for this you need your unique primary key or
 unique composite index fields to already be given, for the inevitable table lookup
 This method is provided, but you should use Class->restore_from_database({args}) in preference. In later revisions, this may become deprecated.
+
+=head2 primary_key
+
+This should be defined in your sub class, and should return the attribute (column) name which will store the unique primary key value
 
 =head1 DIAGNOSTICS
 

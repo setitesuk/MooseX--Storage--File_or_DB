@@ -6,7 +6,7 @@ use Test::More 'no_plan';#tests => ;
 use Test::Exception;
 use lib qw{t t/lib};
 use util;
-use DateTime;
+use JSON;
 
 BEGIN {
   use_ok('MooseX::Storage::File_or_DB');
@@ -81,5 +81,30 @@ my $util = util->new({
   }); } q{generated from restore_from_database function};
   isa_ok($dbtest_restore, q{DB_test}, q{$dbtest_restore});
   is($dbtest_restore->col_b(), 4, q{col_b value has been accurately restored});
+
+  my $json_string = $dbtest_restore->freeze();
+  my $new_object = DB_test->thaw($json_string);
+  isa_ok($new_object, q{DB_test}, q{thawed from JSON string ok});
+
+  foreach my $attribute (qw{col_a col_b col_c col_d}) {
+    is($new_object->$attribute(), $dbtest_restore->$attribute(), qq{$attribute correct});
+  }
+
+  lives_ok { $new_object->dbh($util->dbh()); } q{dbh passed into new object ok};
+  lives_ok { $new_object->read_from_database(); } q{read from db ok};
+  is($new_object->col_index(), 2, q{index ok});
+
+  $new_object->col_a(q{Auf Weidersehn});
+  lives_ok { $new_object->write_to_database(); } q{written to database};
 }
+
+{
+  my $dbtest_restore;
+  lives_ok { $dbtest_restore = DB_test->restore_from_database({
+    dbh => $util->dbh(),
+    col_a => q{Auf Weidersehn},
+  }); } q{generated from row with Auf Weidersehn as update};
+  is($dbtest_restore->col_index(), 2, q{got correct row});
+}
+
 1;
