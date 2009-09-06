@@ -13,4 +13,4 @@ if($EVAL_ERROR) {
   plan( skip_all => 'Test::Kwalitee not installed; skipping' );
 }
 
-Test::Kwalitee->import(tests => [qw(-no_symlinks -has_meta_yml)]);
+Test::Kwalitee->import(tests => [qw(-no_symlinks -has_meta_yml -use_strict)]);

@@ -6,7 +6,6 @@ use Test::More 'no_plan';#tests => ;
 use Test::Exception;
 use lib qw{t t/lib};
 use util;
-use JSON;
 
 BEGIN {
   use_ok('MooseX::Storage::File_or_DB');

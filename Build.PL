@@ -17,6 +17,8 @@ my $builder = Module::Build->new(
 							 'DBI'                => '1.51',
 							 'Config::IniFiles'   => '2.38',
 							 'Readonly'           => '1.03',
+							 'strict'             => 0,
+							 'warnings'           => 0,
 							},
 				 build_requires      => {
 							 'Test::Distribution' => '0',
@@ -25,6 +27,7 @@ my $builder = Module::Build->new(
 							 'Test::Exception'    => '0',
 							},
 				 build_recommends    => {
+				       'Test::Kwalitee',
 							},
 				 create_makefile_pl  => 'passthrough',
 				 script_files        => [qw()],
