@@ -12,7 +12,7 @@ use Readonly;
 use MooseX::Storage;
    with (Storage( traits => ['DisableCycleDetection', 'OnlyWhenBuilt'], 'format' => 'JSON', 'io' => 'File')); # ensures  that we can still export to a JSON string
 
-Readonly::Scalar our $VERSION => 0.1;
+our $VERSION = 0.1;
 
 has q{dbh} => ( isa => q{Object}, is => q{rw}, metaclass => 'DoNotSerialize', predicate => q{has_dbh} );
 
