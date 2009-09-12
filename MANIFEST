@@ -2,7 +2,7 @@ Build.PL
 Changes
 MANIFEST
 README
-lib/MooseX/Storage/File_or_DB.pm
+lib/MooseX/File_or_DB/Storage.pm
 t/00-critic.t
 t/00-distribution.t
 t/00-kwalitee.t
@@ -16,4 +16,3 @@ t/lib/util.pm
 t/perlcriticrc
 test_db
 Makefile.PL
-META.yml
