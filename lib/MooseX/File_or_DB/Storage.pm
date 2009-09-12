@@ -242,6 +242,8 @@ or you can restore directly from the database
 
 =head1 DESCRIPTION
 
+(Previously, this was MooseX::Storage::File_or_DB)
+
 Class for simply storing a Moose object out to database, but where each attribute is a table column, so it can undergo
 ordinary database interrogation with SQL (however dirty that might be) or reinstantiated to the Moose object
 
