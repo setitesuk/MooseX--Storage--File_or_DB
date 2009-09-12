@@ -13,7 +13,7 @@ use Carp;
 use English qw{-no_match_vars};
 use Readonly;
 
-extends qw{MooseX::Storage::File_or_DB};
+extends qw{MooseX::File_or_DB::Storage};
 
 Readonly::Scalar our $VERSION => do { my ($r) = q$LastChangedRevision: 5210 $ =~ /(\d+)/mxs; $r; };
 

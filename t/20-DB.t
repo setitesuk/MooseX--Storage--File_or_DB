@@ -8,7 +8,7 @@ use lib qw{t t/lib};
 use util;
 
 BEGIN {
-  use_ok('MooseX::Storage::File_or_DB');
+  use_ok('MooseX::File_or_DB::Storage');
   use_ok('DB_test');
 }
 

@@ -3,9 +3,9 @@ use warnings;
 use Module::Build;
 
 my $builder = Module::Build->new(
-				 module_name         => 'MooseX::Storage::File_or_DB',
+				 module_name         => 'MooseX::File_or_DB::Storage',
 				 dist_author         => 'Andy Brown <setitesuk@gmail.com>',
-				 dist_version        => 0.1,
+				 dist_version        => 0.2,
 				 dist_abstract       => q[module to add functions which will store out to a database as well as a file which contains a JSON string],
 				 license             => 'perl',
 				 requires            => {
