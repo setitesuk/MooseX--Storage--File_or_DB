@@ -1,0 +1,6 @@
+MooseX::File_or_DB::Storage
+___________________________
+
+Module for enabling a Moose object to be stored by either being written out to a file as a JSON string, or out to a database row.
+
+See POD for further details

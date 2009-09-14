@@ -1,2 +1,11 @@
+Version 0.4
+ - Correct Build.PL to include DBD::SQLite as a requirement for build
+
+Version 0.3
+ - rename for namespace issues
+
+Version 0.2
+ - enable to update an object row as well as just save out if unique primary key column
+
 Version 0.1
  - initial startup
