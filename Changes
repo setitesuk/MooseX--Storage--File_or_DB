@@ -1,3 +1,6 @@
+Version 0.5
+ - Set to use LGPLv3+
+
 Version 0.4
  - Correct Build.PL to include DBD::SQLite as a requirement for build
 
